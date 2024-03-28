@@ -1,0 +1,195 @@
+---
+title: "HW#3"
+author: "KurochkinaDN"
+date: "2024-03-25"
+output: html_document
+---
+Формулировка задания:
+
+В первых двух заданиях вам необходимо посчитать описательные статистики. Для количественной переменной рассчитайте число наблюдений, среднее, стандартное отклонение, 1-й и 3-й квартили, минимум и максимум. Для категориальной переменной определите абсолютную и относительные частоты.
+
+Необходимо выполнить следующие пункты:
+1. Рассчитайте описательные статистики для переменных glucose, pressure, mass. — 1 балл
+2. Рассчитайте описательную статистику для переменной diabetes. Создайте на основе переменной age новую переменную age_group, которая будет отражать следующие возрастные группы: 21–35, 36–49 и 50+. Посчитайте описательную статистику для новой переменной. — 1 балл
+3. Определите 90% доверительный интервал для переменной pedigree. — 2 балла
+4. Постройте график плотности вероятности для переменной glucose и отметьте на нем среднее значение. Для той же переменной постройте гистограмму. Постройте два ящика с усами для значений pos и neg соответственно переменной diabetes. — 3 балла
+5. Постройте на одном графике две диаграммы рассеяния для наличия или отсутствия диабета. По оси X представьте значения обхвата трицепса, а по оси Y — массу тела. Выполните окрашивание, заливку и группирование по переменной diabetes. — 3 балла
+
+
+```{r}
+pima <- read_excel("/home/dasha/Desktop/МФТИ/биостатистика/pima.xlsx")
+
+# проверка на пропущенные значения
+which(is.na(pima))
+#integer(0) - их нет
+
+print(pima)
+```
+Задача 1. Рассчитайте описательные статистики для переменных glucose, pressure, mass. — 1 балл
+Для количественной переменной рассчитайте число наблюдений, среднее, стандартное отклонение, 1-й и 3-й квартили, минимум и максимум.
+```{r}
+psych::describe(pima)
+
+pima_mode <- pima %>%
+    mutate(pregnant = as.numeric(pregnant),
+          diabetes = as.factor(diabetes), 
+          glucose = as.numeric(glucose), 
+          pressure = as.numeric(pressure), 
+          triceps = as.numeric(triceps), 
+          insulin = as.numeric(insulin), 
+          mass = as.numeric(mass), 
+          pedigree = as.numeric(pedigree))
+
+summ_pima <- pima_mode %>%
+  summarise(n = n(),
+            mean = mean(glucose),
+            sd = sd(glucose),
+            first_quart = quantile(glucose, probs = 0.25),
+            third_quart = quantile(glucose, probs = 0.75),
+            min = min(glucose),
+            max = max(glucose))
+print(summ_pima)
+```
+Ответ для переменной glucose
+количество наблюдений 768
+среднее 120.8945
+ст. отклонение 120.8945
+первый квартиль 99
+третий квартиль 140.25
+минимум 0
+максимум 199
+```{r}
+pressure_pima <- pima_mode %>%
+  summarise(n = n(),
+            mean = mean(pressure),
+            sd = sd(pressure),
+            first_quart = quantile(pressure, probs = 0.25),
+            third_quart = quantile(pressure, probs = 0.75),
+            min = min(pressure),
+            max = max(pressure))
+print(pressure_pima)
+```
+Ответ для переменной pressure
+количество наблюдений 768
+среднее 69.10547
+ст. отклонение 19.35581
+первый квартиль 62
+третий квартиль 80
+минимум 0
+максимум 122
+```{r}
+
+```
+
+
+```{r}
+mass_pima <- pima_mode %>%
+  summarise(n = n(),
+            mean = mean(mass),
+            sd = sd(mass),
+            first_quart = quantile(mass, probs = 0.25),
+            third_quart = quantile(mass, probs = 0.75),
+            min = min(mass),
+            max = max(mass))
+print(mass_pima)
+```
+
+Ответ для переменной mass
+количество наблюдений 768
+среднее 31.99258
+ст. отклонение 7.88416
+первый квартиль 27.3
+третий квартиль 36.6
+минимум 0
+максимум 67.1
+```
+
+
+Задача 2.Рассчитайте описательную статистику для переменной diabetes. Создайте на основе переменной age новую переменную age_group, которая будет отражать следующие возрастные группы: 21–35, 36–49 и 50+. Посчитайте описательную статистику для новой переменной. — 1 балл
+Для категориальной переменной определите абсолютную и относительные частоты.
+
+
+```{r}
+diabetes_st <- pima_mode %>%
+                    group_by(diabetes) %>%
+                    summarise(abs = n(),
+                    percent = n() / nrow(pima_mode) * 100)
+diabetes_st
+#500 пациентов - 65.1% - имеют диабет, а 268 - 34.89% -не имеют диабет.
+
+# создание новой переменной age_group
+pima_mode$age_group <- ifelse(pima_mode$age >= 21 & pima_mode$age <= 35, '21–35',
+                         ifelse(pima_mode$age >= 36 & pima_mode$age <= 49, '36–49', '50+'))
+
+
+age_table <- pima_mode %>%
+                    group_by(age_group) %>%
+                    summarise(abs = n(),
+                    percent = n() / nrow(pima_mode) * 100)
+age_table
+```    
+```
+Ответ:
+21-25 - 498 чел - 64.84%
+36–49	- 181 чел - 23.57%
+50+ - 89 чел - 11.6%
+
+
+
+
+Задача 3. Определите 90% доверительный интервал для переменной pedigree. — 2 балла
+
+```{r}
+pedigree_mean <- mean(pima_mode$pedigree) # среднее для переменной pedigree = 0.47
+sd_pedigree <- sd(pima_mode$pedigree) # стандартное отклонение = 0.33 (округл до 2 зн после запятой)
+
+n <- length(pima_mode$pedigree)
+z <- qnorm(0.95) #z=1.644854
+sdd_err <- sd_pedigree / sqrt(n) # стандарт ошибка = 0.012
+
+
+ci_lower <- pedigree_mean - z * sdd_err # ci_lower = 0.4522108
+ci_upper <- pedigree_mean + z * sdd_err # ci_upper = 0.4915418
+
+```
+Ответ: 90% доверительный интервал  для переменной pedigree = (0.45, 0.49)
+
+
+
+Задача 4.  Постройте график плотности вероятности для переменной glucose и отметьте на нем среднее значение. Для той же переменной постройте гистограмму. Постройте два ящика с усами для значений pos и neg соответственно переменной diabetes. — 3 балла
+```{r}
+density_plot <- density(pima_mode$glucose, na.rm = TRUE)
+plot(density_plot, main = "график плотности вероятности для переменной glucose",  ylab = "плотность", xlab = "глюкоза")
+abline(v = mean(pima_mode$glucose, na.rm = TRUE), col = "green")
+```
+```{r}
+hist(pima_mode$glucose, 
+     main = "график плотности вероятности для переменной glucose", 
+     xlab = "уровень глюкозы", 
+     ylab = "частота встречаемости", 
+     breaks = 40)
+abline(v = mean(pima_mode$glucose, na.rm = TRUE), col = "red", lwd = 2)
+```
+```{r}
+boxplot(glucose ~ diabetes, 
+        data = pima_mode, 
+        main = "боксплот для значений pos и neg переменной diabetes", 
+        xlab = "Наличие диабета", 
+        ylab = "Уровень глюкозы", 
+        col = c("red", "blue"))
+
+```
+Задача 5.  Постройте на одном графике две диаграммы рассеяния для наличия или отсутствия диабета. По оси X представьте значения обхвата трицепса, а по оси Y — массу тела. Выполните окрашивание, заливку и группирование по переменной diabetes. — 3 балла
+
+```{r}
+
+pima_mode <- subset(pima_mode, triceps != 0 & mass != 0) #для красивого графика удалим нулевые значения
+
+ggplot(pima_mode, aes(triceps, mass, color = diabetes)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(x = "обхват трицепса", y = "масса тела", title = "Диаграмма рассеяния для обхвата трицепца в зависимости от массы тела с группировкой по диабету") +
+  facet_wrap(~diabetes)
+```
+Ответ:
+Зависимость в обеих подгруппах линейная. По мере увеличения массы тела увеличивается и обхват трицепса. причем, у пациентов без сахарного диабета эта зависимостьболее выражена (угол наклона более пологий).
